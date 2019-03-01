@@ -170,7 +170,10 @@ class WaveGlow(torch.nn.Module):
         """
 
     def infer(self, spect, sigma=1.0):
+        """samples z and runs in reverse"""
+        # upsample spectrum to sampling rate of audio, using learned parameters
         spect = self.upsample(spect)
+        # breakpoint()
         # trim conv artifacts. maybe pad spec to kernel multiple
         time_cutoff = self.upsample.kernel_size[0] - self.upsample.stride[0]
         spect = spect[:, :, :-time_cutoff]
@@ -178,9 +181,9 @@ class WaveGlow(torch.nn.Module):
         spect = spect.unfold(2, self.n_group, self.n_group).permute(0, 2, 1, 3)
         spect = spect.contiguous().view(spect.size(0), spect.size(1), -1).permute(0, 2, 1)
 
-        audio = torch.randn(
+        audio = sigma*torch.randn(
             (spect.size(0), self.n_remaining_channels, spect.size(2)),
-            dtype=spect.dtype, device=spect.device
+            dtype=spect.dtype, device=spect.device#, requires_grad=True
         )
 #         if spect.type() == 'torch.cuda.HalfTensor':
 #             audio = torch.cuda.HalfTensor(spect.size(0),
@@ -190,8 +193,7 @@ class WaveGlow(torch.nn.Module):
 #             audio = torch.cuda.FloatTensor(spect.size(0),
 #                                            self.n_remaining_channels,
 #                                            spect.size(2)).normal_()
-
-        audio = torch.autograd.Variable(sigma*audio)
+#         audio = torch.autograd.Variable(sigma*audio)
 
         for k in reversed(range(self.n_flows)):
             n_half = int(audio.size(1)/2)
