@@ -254,6 +254,8 @@ class WaveGlow(torch.nn.Module):
             audio_0 = audio[:,:n_half,:]
             audio_1 = audio[:,n_half:,:]
 
+            print(self.dtype(), audio.dtype, audio_0.dtype)
+
             output = self.WN[k](audio_0) # output = self.WN[k]((audio_0, spect))
             log_s = output[:, n_half:, :]
             b = output[:, :n_half, :]
