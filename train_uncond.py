@@ -74,8 +74,8 @@ def train(num_gpus, rank, group_name, output_directory, epochs, learning_rate,
 
     if is_fp16:
         model.half()
-        for k in model.convinv:
-            k.float()
+        # for k in model.convinv:
+            # k.float()
 
     if num_gpus>0:
         model = model.cuda()
