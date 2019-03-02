@@ -247,14 +247,14 @@ class WaveGlow(torch.nn.Module):
             audio, log_det_W = self.convinv[k](audio)
             log_det_W_list.append(log_det_W)
 
-            audio.to(dtype=self.dtype())
+            # audio.to(dtype=self.dtype())
 
 
             n_half = int(audio.size(1)/2)
             audio_0 = audio[:,:n_half,:]
             audio_1 = audio[:,n_half:,:]
 
-            print(self.dtype(), audio.dtype, audio_0.dtype)
+            # print(self.dtype(), audio.dtype, audio_0.dtype)
 
             output = self.WN[k](audio_0) # output = self.WN[k]((audio_0, spect))
             log_s = output[:, n_half:, :]
@@ -268,10 +268,10 @@ class WaveGlow(torch.nn.Module):
         return torch.cat(output_audio,1), log_s_list, log_det_W_list
 
     def device(self):
-        return self.WN[0].start.weight.device
+        return self.WN[0].start.bias.device
 
     def dtype(self):
-        return self.WN[0].start.weight.dtype
+        return self.WN[0].start.bias.dtype
 
     # def infer(self, spect, sigma=1.0):
     def infer(self, nbatch, nsamps, sigma=1.0):
