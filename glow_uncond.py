@@ -279,7 +279,7 @@ class WaveGlow(torch.nn.Module):
 
 
         audio = sigma*torch.randn(
-            (nbatch, self.n_remaining_channels, nsamp),
+            (nbatch, self.n_remaining_channels, nsamps//self.n_group),
             dtype=self.dtype(), device=self.device()#, requires_grad=True
         )
         # if spect.type() == 'torch.cuda.HalfTensor':
@@ -306,15 +306,15 @@ class WaveGlow(torch.nn.Module):
             audio = self.convinv[k](audio, reverse=True)
 
             if k % self.n_early_every == 0 and k > 0:
-                z = torch.randn(
-                    (nbatch, self.n_early_size, nsamps),
+                z = sigma*torch.randn(
+                    (nbatch, self.n_early_size, nsamps//self.n_group),
                     dtype=self.dtype(), device=self.device()
                 )
                 # if spect.type() == 'torch.cuda.HalfTensor':
                 #     z = torch.cuda.HalfTensor(spect.size(0), self.n_early_size, spect.size(2)).normal_()
                 # else:
                 #     z = torch.cuda.FloatTensor(spect.size(0), self.n_early_size, spect.size(2)).normal_()
-                audio = torch.cat((sigma*z, audio), 1)
+                audio = torch.cat((z, audio), 1)
 
         audio = audio.permute(0,2,1).contiguous().view(audio.size(0), -1).data
         return audio

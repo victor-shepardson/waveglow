@@ -33,6 +33,7 @@ import torch.utils.data
 import sys
 from scipy.io.wavfile import read as wavread
 from librosa.core import load as audioread
+import numpy as np
 
 MAX_WAV_VALUE = 32768.0
 
@@ -64,14 +65,26 @@ class AudioDataset(torch.utils.data.Dataset):
     This is Mel2Samp from mel2samp.py with all the mel removed -- just an identical audio loader
     Also adds ability to read more formats+convert sample rate with librosa
     """
-    def __init__(self, training_files, segment_length, sampling_rate):
-        self.audio_files = files_to_list(training_files)
+    def __init__(self, training_files, segment_length, sampling_rate, sanity_check):
         random.seed(1234)
+        self.sanity_check = sanity_check
+        self.audio_files = files_to_list(training_files)
         random.shuffle(self.audio_files)
         self.segment_length = segment_length
         self.sampling_rate = sampling_rate
 
     def __getitem__(self, index):
+        # if sanity_check flag is set, return synthetic data
+        if self.sanity_check=='sine':
+        #     return ((torch.linspace(
+        #         0, 440*self.segment_length/self.sampling_rate,
+        #         self.segment_length
+        #         )+torch.rand(1))*2*np.pi).sin()*(0.5*2**(torch.rand(1)*2-2))
+            return (torch.linspace(
+                0, 440*self.segment_length/self.sampling_rate,
+                self.segment_length
+                )*2*np.pi).sin()*0.2
+
         # Read audio
         filename = self.audio_files[index]
         audio = load_audio_to_torch(filename, self.sampling_rate)

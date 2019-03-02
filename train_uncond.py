@@ -61,7 +61,7 @@ def save_checkpoint(model, optimizer, learning_rate, iteration, filepath):
                 'learning_rate': learning_rate}, filepath)
 
 def train(num_gpus, rank, group_name, output_directory, epochs, learning_rate,
-          sigma, iters_per_checkpoint, batch_size, seed, checkpoint_path):
+          sigma, iters_per_checkpoint, batch_size, seed, checkpoint_path, is_fp16):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     # #=====START: ADDED FOR DISTRIBUTED======
@@ -71,6 +71,12 @@ def train(num_gpus, rank, group_name, output_directory, epochs, learning_rate,
 
     criterion = WaveGlowLoss(sigma)
     model = WaveGlow(**waveglow_config)
+
+    if is_fp16:
+        model.half()
+        for k in model.convinv:
+            k.float()
+
     if num_gpus>0:
         model = model.cuda()
 
