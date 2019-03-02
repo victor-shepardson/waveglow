@@ -161,7 +161,6 @@ class WN(torch.nn.Module):
 
     def forward(self, forward_input):
         audio = forward_input # audio, spect = forward_input
-        audio.to(dtype=self.dtype())
         audio = self.start(audio)
 
         for i in range(self.n_layers):
