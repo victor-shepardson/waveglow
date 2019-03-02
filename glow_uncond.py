@@ -223,7 +223,7 @@ class WaveGlow(torch.nn.Module):
         forward_input = audio: batch x time
         """
         audio = forward_input# spect, audio = forward_input
-        audio.to(dtype=self.dtype())
+        audio = audio.to(dtype=self.dtype())
 
         #  Upsample spectrogram to size of audio
         # spect = self.upsample(spect)
@@ -247,7 +247,7 @@ class WaveGlow(torch.nn.Module):
             audio, log_det_W = self.convinv[k](audio)
             log_det_W_list.append(log_det_W)
 
-            audio.to(dtype=self.dtype())
+            # audio.to(dtype=self.dtype())
 
 
             n_half = int(audio.size(1)/2)
