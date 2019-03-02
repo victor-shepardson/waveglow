@@ -38,6 +38,10 @@ from torch.utils.data import DataLoader
 from glow_uncond import WaveGlow, WaveGlowLoss
 from audiodataset import AudioDataset
 
+import sys
+sys.path.append('../')
+from fp16_optimizer import FP16_Optimizer
+
 def load_checkpoint(checkpoint_path, model, optimizer):
     assert os.path.isfile(checkpoint_path)
     checkpoint_dict = torch.load(checkpoint_path, map_location='cpu')
@@ -72,8 +76,8 @@ def train(num_gpus, rank, group_name, output_directory, epochs, learning_rate,
     criterion = WaveGlowLoss(sigma)
     model = WaveGlow(**waveglow_config)
 
-    if is_fp16:
-        model.half()
+    # if is_fp16:
+        # model.half()
         # for k in model.convinv:
             # k.float()
 
@@ -85,7 +89,13 @@ def train(num_gpus, rank, group_name, output_directory, epochs, learning_rate,
     #     model = apply_gradient_allreduce(model)
     # #=====END:   ADDED FOR DISTRIBUTED======
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
+    if is_fp16:
+        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, eps=1e-4)
+        optimizer = FP16_Optimizer(optimizer)
+    else:
+        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
 
     # Load checkpoint if one exists
     iteration = 0
@@ -129,7 +139,12 @@ def train(num_gpus, rank, group_name, output_directory, epochs, learning_rate,
                 reduced_loss = reduce_tensor(loss.data, num_gpus).item()
             else:
                 reduced_loss = loss.item()
-            loss.backward()
+
+            if is_fp16:
+                optimizer.backward(loss)
+            else:
+                loss.backward()
+
             optimizer.step()
 
             print("{}:\t{:.9f}".format(iteration, reduced_loss))
