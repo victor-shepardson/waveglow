@@ -65,7 +65,7 @@ class AudioDataset(torch.utils.data.Dataset):
     This is Mel2Samp from mel2samp.py with all the mel removed -- just an identical audio loader
     Also adds ability to read more formats+convert sample rate with librosa
     """
-    def __init__(self, training_files, segment_length, sampling_rate, sanity_check):
+    def __init__(self, training_files, segment_length, sampling_rate, sanity_check=None):
         random.seed(1234)
         self.sanity_check = sanity_check
         self.audio_files = files_to_list(training_files)

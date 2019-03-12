@@ -169,7 +169,7 @@ class WaveGlow(torch.nn.Module):
         return torch.cat(output_audio,1), s_list, s_conv_list
         """
 
-    def infer(self, spect, sigma=1.0):
+    def infer(self, spect, sigma=1.0, verbose=False):
         """samples z and runs in reverse"""
         # upsample spectrum to sampling rate of audio, using learned parameters
         spect = self.upsample(spect)
@@ -195,7 +195,12 @@ class WaveGlow(torch.nn.Module):
 #                                            spect.size(2)).normal_()
 #         audio = torch.autograd.Variable(sigma*audio)
 
-        for k in reversed(range(self.n_flows)):
+        flow_idxs = list(reversed(range(self.n_flows)))
+        if verbose:
+            from tqdm import tqdm
+            flow_idxs = tqdm(flow_idxs, desc='flow step')
+        # for k in reversed(range(self.n_flows)):
+        for k in flow_idxs:
             n_half = int(audio.size(1)/2)
             if k%2 == 0:
                 audio_0 = audio[:,:n_half,:]
