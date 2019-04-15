@@ -112,8 +112,13 @@ class WaveGlow(torch.nn.Module):
                 n_half = n_half - int(self.n_early_size/2)
                 n_remaining_channels = n_remaining_channels - self.n_early_size
             self.convinv.append(Invertible1x1Conv(n_remaining_channels))
+            # self.WN.append(torch.jit.trace(
+            #     WN(n_half, n_mel_channels*n_group, **WN_config),
+            #     (torch.rand((1, n_half)), torch.rand(1, n_mel_channels*n_group))
+            #     ))
             self.WN.append(WN(n_half, n_mel_channels*n_group, **WN_config))
         self.n_remaining_channels = n_remaining_channels  # Useful during inference
+
 
     def forward(self, forward_input):
         return None

@@ -24,18 +24,22 @@
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 # *****************************************************************************\
-import os
+import sys, os
 import random
 import argparse
 import json
 import torch
 import torch.utils.data
-import sys
+import numpy as np
 from scipy.io.wavfile import read
 
 # We're using the audio processing from TacoTron2 to make sure it matches
-sys.path.insert(0, 'tacotron2')
-from tacotron2.layers import TacotronSTFT
+try:
+    sys.path.insert(0, 'tacotron2')
+    from tacotron2.layers import TacotronSTFT
+except ModuleNotFoundError:
+    sys.path.insert(0, '../')
+    from layers import TacotronSTFT
 
 MAX_WAV_VALUE = 32768.0
 
@@ -54,7 +58,7 @@ def load_wav_to_torch(full_path):
     Loads wavdata into torch array
     """
     sampling_rate, data = read(full_path)
-    return torch.from_numpy(data).float(), sampling_rate
+    return torch.from_numpy(data).float()/MAX_WAV_VALUE, sampling_rate
 
 
 class Mel2Samp(torch.utils.data.Dataset):
@@ -76,20 +80,22 @@ class Mel2Samp(torch.utils.data.Dataset):
         self.sampling_rate = sampling_rate
 
     def get_mel(self, audio):
-        audio_norm = audio / MAX_WAV_VALUE
-        audio_norm = audio_norm.unsqueeze(0)
-        audio_norm = torch.autograd.Variable(audio_norm, requires_grad=False)
-        melspec = self.stft.mel_spectrogram(audio_norm)
+        audio = audio.unsqueeze(0)
+        # audio = torch.autograd.Variable(audio, requires_grad=False)
+        melspec = self.stft.mel_spectrogram(audio)
         melspec = torch.squeeze(melspec, 0)
         return melspec
 
     def __getitem__(self, index):
         # Read audio
         filename = self.audio_files[index]
-        audio, sampling_rate = load_wav_to_torch(filename)
-        if sampling_rate != self.sampling_rate:
-            raise ValueError("{} SR doesn't match target {} SR".format(
-                sampling_rate, self.sampling_rate))
+        if '.npy' in filename:
+            audio = torch.from_numpy(np.load(filename))
+        else:
+            audio, sampling_rate = load_wav_to_torch(filename)
+            if sampling_rate != self.sampling_rate:
+                raise ValueError("{} SR doesn't match target {} SR".format(
+                    sampling_rate, self.sampling_rate))
 
         # Take segment
         if audio.size(0) >= self.segment_length:
@@ -100,7 +106,6 @@ class Mel2Samp(torch.utils.data.Dataset):
             audio = torch.nn.functional.pad(audio, (0, self.segment_length - audio.size(0)), 'constant').data
 
         mel = self.get_mel(audio)
-        audio = audio / MAX_WAV_VALUE
 
         return (mel, audio)
 
