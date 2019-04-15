@@ -112,20 +112,14 @@ class WaveGlow(torch.nn.Module):
                 n_half = n_half - int(self.n_early_size/2)
                 n_remaining_channels = n_remaining_channels - self.n_early_size
             self.convinv.append(Invertible1x1Conv(n_remaining_channels))
-            # self.WN.append(torch.jit.trace(
-            #     WN(n_half, n_mel_channels*n_group, **WN_config),
-            #     (torch.rand((1, n_half)), torch.rand(1, n_mel_channels*n_group))
-            #     ))
             self.WN.append(WN(n_half, n_mel_channels*n_group, **WN_config))
         self.n_remaining_channels = n_remaining_channels  # Useful during inference
 
 
     def forward(self, forward_input):
-        return None
         """
         forward_input[0] = audio: batch x time
         forward_input[1] = upsamp_spectrogram:  batch x n_cond_channels x time
-        """
         """
         spect, audio = forward_input
 
@@ -138,19 +132,24 @@ class WaveGlow(torch.nn.Module):
         spect = spect.unfold(2, self.n_group, self.n_group).permute(0, 2, 1, 3)
         spect = spect.contiguous().view(spect.size(0), spect.size(1), -1).permute(0, 2, 1)
 
+
         audio = audio.unfold(1, self.n_group, self.n_group).permute(0, 2, 1)
         output_audio = []
         s_list = []
         s_conv_list = []
 
+        # print('inputs', checknans(spect, audio))
+
         for k in range(self.n_flows):
             if k%4 == 0 and k > 0:
-                output_audio.append(audio[:,:self.n_multi,:])
-                audio = audio[:,self.n_multi:,:]
+                output_audio.append(audio[:,:self.n_early_size,:])
+                audio = audio[:,self.n_early_size:,:]
 
             # project to new basis
             audio, s = self.convinv[k](audio)
             s_conv_list.append(s)
+
+            # print(f'block {k}', checknans(s, audio))
 
             n_half = int(audio.size(1)/2)
             if k%2 == 0:
@@ -160,7 +159,7 @@ class WaveGlow(torch.nn.Module):
                 audio_1 = audio[:,:n_half,:]
                 audio_0 = audio[:,n_half:,:]
 
-            output = self.nn[k]((audio_0, spect))
+            output = self.WN[k]((audio_0, spect))
             s = output[:, n_half:, :]
             b = output[:, :n_half, :]
             audio_1 = torch.exp(s)*audio_1 + b
@@ -172,7 +171,6 @@ class WaveGlow(torch.nn.Module):
                 audio = torch.cat([audio_1, audio[:,n_half:,:]], 1)
         output_audio.append(audio)
         return torch.cat(output_audio,1), s_list, s_conv_list
-        """
 
     def infer(self, spect, sigma=1.0, verbose=False):
         """samples z and runs in reverse"""
@@ -251,3 +249,6 @@ class WaveGlow(torch.nn.Module):
             WN.cond_layers = remove(WN.cond_layers)
             WN.res_skip_layers = remove(WN.res_skip_layers)
         return waveglow
+
+def checknans(*args):
+    return [torch.isnan(a).any().item() for a in args]

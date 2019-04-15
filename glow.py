@@ -97,7 +97,9 @@ class Invertible1x1Conv(torch.nn.Module):
             return z
         else:
             # Forward computation
-            log_det_W = batch_size * n_of_groups * torch.logdet(W)
+            # log_det_W = batch_size * n_of_groups * torch.logdet(W)
+            log_det_W = batch_size * n_of_groups * torch.det(W).abs().log()
+
             z = self.conv(z)
             return z, log_det_W
 

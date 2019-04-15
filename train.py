@@ -35,21 +35,29 @@ from torch.utils.data.distributed import DistributedSampler
 #=====END:   ADDED FOR DISTRIBUTED======
 
 from torch.utils.data import DataLoader
-from glow import WaveGlow, WaveGlowLoss
+# from glow import WaveGlow, WaveGlowLoss
+from glow import WaveGlowLoss
+from glow_old import WaveGlow
+
 from mel2samp import Mel2Samp
 
 def load_checkpoint(checkpoint_path, model, optimizer):
     assert os.path.isfile(checkpoint_path)
     checkpoint_dict = torch.load(checkpoint_path, map_location='cpu')
-    iteration = checkpoint_dict['iteration']
-    optimizer.load_state_dict(checkpoint_dict['optimizer'])
+    if 'iteration' in checkpoint_dict:
+        iteration = checkpoint_dict['iteration']
+        optimizer.load_state_dict(checkpoint_dict['optimizer'])
+    else:
+        iteration = 0
     model_for_loading = checkpoint_dict['model']
-    model.load_state_dict(model_for_loading.state_dict())
+
+    model.load_state_dict(model_for_loading.state_dict(), False)
     print("Loaded checkpoint '{}' (iteration {})" .format(
           checkpoint_path, iteration))
     return model, optimizer, iteration
 
 def save_checkpoint(model, optimizer, learning_rate, iteration, filepath):
+    return
     print("Saving model and optimizer state at iteration {} to {}".format(
           iteration, filepath))
     # model_for_saving = WaveGlow(**waveglow_config).cuda()
