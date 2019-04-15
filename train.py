@@ -35,9 +35,9 @@ from torch.utils.data.distributed import DistributedSampler
 #=====END:   ADDED FOR DISTRIBUTED======
 
 from torch.utils.data import DataLoader
-# from glow import WaveGlow, WaveGlowLoss
-from glow import WaveGlowLoss
-from glow_old import WaveGlow
+from glow import WaveGlow, WaveGlowLoss
+# from glow import WaveGlowLoss
+# from glow_old import WaveGlow
 
 from mel2samp import Mel2Samp
 
