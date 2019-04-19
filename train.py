@@ -179,7 +179,7 @@ if __name__ == "__main__":
     waveglow_config = config["waveglow_config"]
 
     if args.checkpoint is not None:
-        data_config["checkpoint_path"] = args.checkpoint
+        train_config["checkpoint_path"] = args.checkpoint
 
     num_gpus = torch.cuda.device_count()
     if num_gpus > 1:
