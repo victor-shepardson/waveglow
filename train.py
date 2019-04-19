@@ -135,7 +135,7 @@ def train(num_gpus, rank, group_name, output_directory, epochs, learning_rate,
             if num_gpus > 1:
                 reduced_loss = reduce_tensor(loss.data, num_gpus).item()
             else:
-                reduced_loss = loss.item()
+                reduced_loss = loss.detach().item()
             batch_losses.append(reduced_loss)
             break ## DEBUG
             loss.backward()
