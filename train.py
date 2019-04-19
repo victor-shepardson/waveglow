@@ -114,9 +114,11 @@ def train(num_gpus, rank, group_name, output_directory, epochs, learning_rate,
 
     model.train()
     epoch_offset = max(0, int(iteration / len(train_loader)))
-    # ================ MAIN TRAINNIG LOOP! ===================
+    # ================ MAIN TRAINING LOOP! ===================
+    epoch_losses = []
     for epoch in range(epoch_offset, epochs):
         print("Epoch: {}".format(epoch))
+        batch_losses = []
         for i, batch in enumerate(train_loader):
             model.zero_grad()
 
@@ -133,6 +135,8 @@ def train(num_gpus, rank, group_name, output_directory, epochs, learning_rate,
                 reduced_loss = reduce_tensor(loss.data, num_gpus).item()
             else:
                 reduced_loss = loss.item()
+            batch_losses.append(reduced_loss)
+            break ## DEBUG
             loss.backward()
             optimizer.step()
 
@@ -146,11 +150,15 @@ def train(num_gpus, rank, group_name, output_directory, epochs, learning_rate,
                                     checkpoint_path)
 
             iteration += 1
+        epoch_losses.append(np.mean(batch_losses))
+        print(epoch_losses)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--config', type=str,
                         help='JSON file for configuration')
+    parser.add_argument('-p', '--checkpoint', type=str,
+                        help='override checkpoint in config')
     parser.add_argument('-r', '--rank', type=int, default=0,
                         help='rank of process for distributed')
     parser.add_argument('-g', '--group_name', type=str, default='',
@@ -168,6 +176,9 @@ if __name__ == "__main__":
     dist_config = config["dist_config"]
     global waveglow_config
     waveglow_config = config["waveglow_config"]
+
+    if args.checkpoint is not None:
+        data_config["checkpoint_path"] = args.checkpoint
 
     num_gpus = torch.cuda.device_count()
     if num_gpus > 1:
